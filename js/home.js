@@ -18,14 +18,18 @@ if (!user) {
         if (sidebarUserRole) sidebarUserRole.textContent = user.status;
         
         if (userProfilePic) {
+            const nameForAvatar = user.nama.replace(/\s+/g, '+');
+            const defaultAvatarUrl = `https://ui-avatars.com/api/?name=${nameForAvatar}&background=0d6efd&color=fff&rounded=true&bold=true`;
+
             if (user.picture) {
                 userProfilePic.src = user.picture;
+                // Jika foto Google gagal dimuat, ganti ke Inisial Nama
                 userProfilePic.onerror = function() {
                     this.onerror = null; 
-                    this.src = "./assets/default.JPEG";
+                    this.src = defaultAvatarUrl;
                 };
             } else {
-                userProfilePic.src = "./assets/default.JPEG";
+                userProfilePic.src = defaultAvatarUrl;
             }
         }
 
@@ -293,6 +297,10 @@ function processDosenDashboard(data) {
 function renderDosenTables(data) {
     const tbPelanggaran = document.getElementById("tabelDosenPelanggaran");
     const tbPemutihan = document.getElementById("tabelDosenPemutihan");
+    
+    // SAFETY CHECK: Jika tabel tidak ada di layar (karena user pindah menu), hentikan fungsi
+    if (!tbPelanggaran || !tbPemutihan) return; 
+
     let htmlPel = "", htmlPem = "";
 
     data.forEach(item => {
@@ -326,6 +334,12 @@ function renderDosenTables(data) {
 }
 
 function renderDosenCharts(data) {
+    const ctxPie = document.getElementById('pieChart');
+    const ctxBar = document.getElementById('barChart');
+
+    // SAFETY CHECK: Jika canvas chart tidak ada di layar, hentikan fungsi
+    if (!ctxPie || !ctxBar) return;
+
     // Hanya hitung yang statusnya "Pelanggaran"
     const pelanggaranAktif = data.filter(d => d.status === "Pelanggaran");
     
@@ -339,53 +353,45 @@ function renderDosenCharts(data) {
     const values = Object.values(counts);
 
     // Render Pie Chart
-    const ctxPie = document.getElementById('pieChart');
-    if (pieChartInstance) pieChartInstance.destroy(); // Hapus chart lama sebelum refresh
-    
-    if (ctxPie) {
-        pieChartInstance = new Chart(ctxPie, {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: values,
-                    backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#198754', '#0dcaf0', '#6f42c1', '#d63384']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { boxWidth: 12 } }
-                }
+    if (pieChartInstance) pieChartInstance.destroy(); 
+    pieChartInstance = new Chart(ctxPie, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#198754', '#0dcaf0', '#6f42c1', '#d63384']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 12 } }
             }
-        });
-    }
+        }
+    });
 
     // Render Bar Chart
-    const ctxBar = document.getElementById('barChart');
     if (barChartInstance) barChartInstance.destroy();
-    
-    if (ctxBar) {
-        barChartInstance = new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Jumlah Pelanggar',
-                    data: values,
-                    backgroundColor: '#0d6efd',
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                plugins: { legend: { display: false } }
-            }
-        });
-    }
+    barChartInstance = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Jumlah Pelanggar',
+                data: values,
+                backgroundColor: '#0d6efd',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+            plugins: { legend: { display: false } }
+        }
+    });
 }
 
 // --- LOGIKA FILTER FRONTEND ---
