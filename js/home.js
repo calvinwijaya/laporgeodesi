@@ -22,10 +22,10 @@ if (!user) {
                 userProfilePic.src = user.picture;
                 userProfilePic.onerror = function() {
                     this.onerror = null; 
-                    this.src = "assets/default.JPEG";
+                    this.src = "./assets/default.JPEG";
                 };
             } else {
-                userProfilePic.src = "assets/default.JPEG";
+                userProfilePic.src = "./assets/default.JPEG";
             }
         }
 
