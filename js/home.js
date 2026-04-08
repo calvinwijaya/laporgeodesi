@@ -298,12 +298,17 @@ function renderDosenTables(data) {
     const tbPelanggaran = document.getElementById("tabelDosenPelanggaran");
     const tbPemutihan = document.getElementById("tabelDosenPemutihan");
     
-    // SAFETY CHECK: Jika tabel tidak ada di layar (karena user pindah menu), hentikan fungsi
+    // SAFETY CHECK
     if (!tbPelanggaran || !tbPemutihan) return; 
 
     let htmlPel = "", htmlPem = "";
 
     data.forEach(item => {
+        // Logika Pengecekan Link Bukti
+        const buktiHtml = (item.link === "-" || item.link.trim() === "") 
+            ? '<span class="badge bg-light text-muted border">Tidak ada</span>' 
+            : `<a href="${item.link}" target="_blank" class="btn btn-sm btn-outline-primary py-0"><i class="bi bi-link-45deg"></i> Bukti</a>`;
+
         if (item.status === "Pelanggaran") {
             htmlPel += `
                 <tr>
@@ -313,8 +318,7 @@ function renderDosenTables(data) {
                     <td>${item.niu}</td>
                     <td class="fw-bold">${item.nama}</td>
                     <td class="text-muted">${item.keterangan}</td>
-                    <td><a href="${item.link}" target="_blank" class="btn btn-sm btn-outline-primary py-0"><i class="bi bi-link-45deg"></i> Bukti</a></td>
-                </tr>`;
+                    <td>${buktiHtml}</td> </tr>`;
         } else if (item.status === "Pemutihan") {
             htmlPem += `
                 <tr>
