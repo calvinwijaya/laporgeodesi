@@ -1,0 +1,66 @@
+<div class="container-fluid py-2">
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-primary text-white rounded-top-4 p-3">
+            <h4 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2"></i>Buat Laporan Sendiri</h4>
+            <small class="ms-4 text-light">(Self-Report)</small>
+        </div>
+        <div class="card-body p-4 bg-white">
+            <form id="formSelfReport">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-secondary">Nama Lengkap</label>
+                        <input type="text" class="form-control bg-light" id="srNama" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-secondary">NIM</label>
+                        <input type="text" class="form-control" id="srNim" required placeholder="Masukkan NIM Anda">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-secondary">Tanggal Pelanggaran</label>
+                        <input type="date" class="form-control fw-bold text-primary" id="srTanggal" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-secondary">Jenis Pelanggaran</label>
+                        <select class="form-select" id="srJenis" required>
+                            <option value="" disabled selected>Pilih jenis pelanggaran...</option>
+                            <option value="Terlambat mengikuti ujian">Terlambat mengikuti ujian</option>
+                            <option value="Titip absen">Titip absen</option>
+                            <option value="Pemalsuan (dokumen/ TTD)">Pemalsuan (dokumen/ TTD)</option>
+                            <option value="Melakukan kekerasan (verbal/non-verbal)">Melakukan kekerasan (verbal/non-verbal)</option>
+                            <option value="Mencontek">Mencontek</option>
+                            <option value="Lain lain">Lain-lain</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 d-none" id="wrapperUjian">
+                    <label class="form-label fw-bold text-secondary">Ujian Apa?</label>
+                    <select class="form-select border-primary" id="srUjian">
+                        <option value="" disabled selected>Pilih jenis ujian...</option>
+                        <option value="UTS Genap 25/26">UTS Genap 25/26</option>
+                        <option value="UAS Genap 25/26">UAS Genap 25/26</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-secondary">Keterangan Pelanggaran</label>
+                    <textarea class="form-control" id="srKeterangan" rows="4" required placeholder="Ceritakan kronologi singkat pelanggaran yang dilakukan..."></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-secondary">Link Dokumentasi / Bukti <span class="fw-normal text-muted" style="font-size: 0.85rem;">(Opsional)</span></label>
+                    <input type="url" class="form-control" id="srLink" placeholder="Masukkan link Google Drive jika ada bukti fisik/dokumen">
+                </div>
+
+                <div class="d-grid mt-2">
+                    <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm">
+                        <i class="bi bi-send-fill me-2"></i>Kirim Laporan!
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,52 @@
+<div class="container-fluid py-2">
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-success text-white rounded-top-4 p-3">
+            <h4 class="mb-0 fw-bold"><i class="bi bi-chat-square-text-fill me-2"></i>Sampaikan Aspirasi Anda!</h4>
+            <small class="ms-4 text-light">Berikan aspirasi Anda terhadap Departemen Teknik Geodesi FT UGM!</small>
+        </div>
+        <div class="card-body p-4 bg-white">
+            <form id="formAspirasi">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-secondary">Nama Aspiran</label>
+                        <input type="text" class="form-control bg-light" id="aspNama" readonly>
+                        <div class="form-text text-muted small"><i class="bi bi-info-circle me-1"></i>Nama otomatis terisi dari akun Anda.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-secondary">Tanggal Aspirasi</label>
+                        <input type="date" class="form-control fw-bold text-success" id="aspTanggal" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-secondary">Jenis Aspirasi</label>
+                    <select class="form-select border-success" id="aspJenis" required>
+                        <option value="" disabled selected>Pilih kategori aspirasi Anda...</option>
+                        <option value="Terkait Perkuliahan">Terkait Perkuliahan</option>
+                        <option value="Terkait Sarana Prasarana">Terkait Sarana Prasarana</option>
+                        <option value="Terkait Kemahasiswaan">Terkait Kemahasiswaan</option>
+                        <option value="Terkait Pelayanan">Terkait Pelayanan</option>
+                        <option value="Terkait lain-lain">Terkait lain-lain</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-secondary">Keterangan Aspirasi</label>
+                    <textarea class="form-control" id="aspKeterangan" rows="5" required placeholder="Tuliskan saran, kritik membangun, atau ide untuk kemajuan Teknik Geodesi..."></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-secondary">Link Dokumentasi <span class="fw-normal text-muted" style="font-size: 0.85rem;">(Opsional)</span></label>
+                    <input type="url" class="form-control" id="aspLink" placeholder="Masukkan link Google Drive jika ada dokumen pendukung/referensi">
+                    <div class="form-text text-muted small">Jika ada contoh bagian yang dapat dikembangkan untuk Geodesi.</div>
+                </div>
+
+                <div class="d-grid mt-2">
+                    <button type="submit" class="btn btn-success btn-lg fw-bold shadow-sm">
+                        <i class="bi bi-send-fill me-2"></i>Kirim Aspirasi!
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
