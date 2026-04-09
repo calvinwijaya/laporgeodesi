@@ -665,7 +665,7 @@ async function promptHapus() {
         const noToHapus = document.getElementById('swal-hapus-select').value;
         Swal.fire({ title: 'Menghapus Data...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-        fetch(GAS_PELANGGARAN_SENDIRI, { 
+        fetch(GAS_PELANGGARAN, { 
             method: 'POST',
             body: JSON.stringify({
                 action: "delete_pelanggaran",
