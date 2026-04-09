@@ -1,7 +1,3 @@
-let globalDosenData = [];
-let pieChartInstance = null;
-let barChartInstance = null;
-
 const user = JSON.parse(sessionStorage.getItem("user"));
 
 if (!user) {
@@ -78,6 +74,7 @@ function loadRiwayatMahasiswa(niu) {
     document.getElementById("tabelPelanggaranBody").innerHTML = '<tr><td colspan="4" class="text-center py-4">Memperbarui data...</td></tr>';
     document.getElementById("tabelPemutihanBody").innerHTML = '<tr><td colspan="4" class="text-center py-4">Memperbarui data...</td></tr>';
 
+    // (Catatan: Pastikan nama variabel GAS_PELANGGARAN sesuai dengan yang ada di config.js Anda)
     fetch(GAS_PELANGGARAN, {
         method: 'POST',
         body: JSON.stringify({ action: "get_riwayat_mahasiswa", niu: niu })
@@ -88,7 +85,9 @@ function loadRiwayatMahasiswa(niu) {
         if (btn) btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Refresh Data';
 
         if (response.status === "ok") {
-            const data = response.data;
+            // 1. REVERSE DATA: Balik urutan array agar data terbaru (paling bawah di sheet) berada di atas
+            const data = response.data.reverse(); 
+            
             const tbPelanggaran = document.getElementById("tabelPelanggaranBody");
             const tbPemutihan = document.getElementById("tabelPemutihanBody");
             
@@ -96,22 +95,31 @@ function loadRiwayatMahasiswa(niu) {
             let htmlPemutihan = "";
             let countPelanggaran = 0;
             let countPemutihan = 0;
+            
+            // 2. COUNTER DINAMIS: Mulai dari angka 1 untuk masing-masing tabel
+            let noPel = 1;
+            let noPem = 1;
 
-           data.forEach(item => {
-                const rowHtml = `
-                    <tr>
-                        <td class="ps-4 fw-bold text-muted">${item.no}</td> 
-                        <td>${item.tanggal}</td>
-                        <td class="fw-semibold">${item.jenis}</td>
-                        <td class="text-muted small">${item.keterangan}</td>
-                    </tr>
-                `;
-
+            data.forEach(item => {
                 if (item.status === "Pelanggaran") {
-                    htmlPelanggaran += rowHtml;
+                    htmlPelanggaran += `
+                        <tr>
+                            <td class="ps-4 fw-bold text-muted">${noPel++}</td> 
+                            <td>${item.tanggal}</td>
+                            <td class="fw-semibold text-danger">${item.jenis}</td>
+                            <td class="text-muted small">${item.keterangan}</td>
+                        </tr>
+                    `;
                     countPelanggaran++;
                 } else if (item.status === "Pemutihan") {
-                    htmlPemutihan += rowHtml;
+                    htmlPemutihan += `
+                        <tr>
+                            <td class="ps-4 fw-bold text-muted">${noPem++}</td> 
+                            <td>${item.tanggal}</td>
+                            <td class="fw-semibold text-success">${item.jenis}</td>
+                            <td class="text-muted small">${item.keterangan}</td>
+                        </tr>
+                    `;
                     countPemutihan++;
                 }
             });
@@ -265,6 +273,18 @@ function performLogout() {
     });
 }
 
+// ==========================================
+// DASHBOARD DOSEN & ADMIN LOGIC
+// ==========================================
+let globalDosenData = [];
+let displayedDosenData = []; // Data yang sedang tampil (setelah filter/sort)
+let pieChartInstance = null;
+let barChartInstance = null;
+let lineChartInstance = null;
+
+let currentSortColumn = 'no';
+let currentSortAsc = false; // Default false (Descending = Data terbaru di atas)
+
 function loadDosenData() {
     const btn = document.getElementById("btnRefreshDosen");
     if (btn) btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>...';
@@ -278,7 +298,13 @@ function loadDosenData() {
         if (btn) btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Refresh';
         if (response.status === "ok") {
             globalDosenData = response.data;
-            processDosenDashboard(globalDosenData);
+            displayedDosenData = [...globalDosenData];
+            
+            // Render Chart dengan Filter yang Aktif
+            filterAndRenderCharts(); 
+            // Render Table (Sort descending by default agar terbaru di atas)
+            sortData(currentSortColumn, currentSortAsc);
+            filterDosenData();
         } else {
             Swal.fire("Gagal", "Gagal mengambil data dari server.", "error");
         }
@@ -289,74 +315,51 @@ function loadDosenData() {
     });
 }
 
-function processDosenDashboard(data) {
-    renderDosenTables(data);
-    renderDosenCharts(data);
-}
-
-function renderDosenTables(data) {
-    const tbPelanggaran = document.getElementById("tabelDosenPelanggaran");
-    const tbPemutihan = document.getElementById("tabelDosenPemutihan");
+// --- LOGIKA FILTER & RENDER CHART (PIE, BAR, LINE, LEADERBOARD) ---
+function filterAndRenderCharts() {
+    const bln = document.getElementById('chartBulan').value;
+    const thn = document.getElementById('chartTahun').value;
     
-    // SAFETY CHECK
-    if (!tbPelanggaran || !tbPemutihan) return; 
+    let filteredForChart = globalDosenData.filter(d => d.status === "Pelanggaran");
+    
+    if (bln !== "Semua" || thn !== "Semua") {
+        filteredForChart = filteredForChart.filter(item => {
+            if(!item.tanggal) return false;
+            const parts = item.tanggal.split('/');
+            if(parts.length !== 3) return false;
+            const [d, m, y] = parts;
+            
+            const matchBln = bln === "Semua" || m === bln;
+            const matchThn = thn === "Semua" || y === thn;
+            return matchBln && matchThn;
+        });
+    }
 
-    let htmlPel = "", htmlPem = "";
-
-    data.forEach(item => {
-        // Logika Pengecekan Link Bukti
-        const buktiHtml = (item.link === "-" || item.link.trim() === "") 
-            ? '<span class="badge bg-light text-muted border">Tidak ada</span>' 
-            : `<a href="${item.link}" target="_blank" class="btn btn-sm btn-outline-primary py-0"><i class="bi bi-link-45deg"></i> Bukti</a>`;
-
-        if (item.status === "Pelanggaran") {
-            htmlPel += `
-                <tr>
-                    <td class="ps-3 fw-bold text-muted">${item.no}</td>
-                    <td>${item.tanggal}</td>
-                    <td class="fw-semibold text-danger">${item.jenis}</td>
-                    <td>${item.niu}</td>
-                    <td class="fw-bold">${item.nama}</td>
-                    <td class="text-muted">${item.keterangan}</td>
-                    <td>${buktiHtml}</td> </tr>`;
-        } else if (item.status === "Pemutihan") {
-            htmlPem += `
-                <tr>
-                    <td class="ps-3 fw-bold text-muted">${item.no}</td>
-                    <td>${item.tanggal}</td>
-                    <td class="fw-semibold text-success">${item.jenis}</td>
-                    <td>${item.niu}</td>
-                    <td class="fw-bold">${item.nama}</td>
-                    <td class="text-muted">${item.keterangan}</td>
-                    <td class="fw-bold text-success">${item.tgl_pemutihan}</td>
-                </tr>`;
-        }
-    });
-
-    tbPelanggaran.innerHTML = htmlPel || '<tr><td colspan="7" class="text-center py-3">Tidak ada data pelanggaran aktif.</td></tr>';
-    tbPemutihan.innerHTML = htmlPem || '<tr><td colspan="7" class="text-center py-3">Tidak ada data pemutihan.</td></tr>';
+    renderDosenCharts(filteredForChart);
+    renderLeaderboard(filteredForChart);
 }
 
 function renderDosenCharts(data) {
     const ctxPie = document.getElementById('pieChart');
     const ctxBar = document.getElementById('barChart');
+    const ctxLine = document.getElementById('lineChart');
+    if (!ctxPie || !ctxBar || !ctxLine) return;
 
-    // SAFETY CHECK: Jika canvas chart tidak ada di layar, hentikan fungsi
-    if (!ctxPie || !ctxBar) return;
-
-    // Hanya hitung yang statusnya "Pelanggaran"
-    const pelanggaranAktif = data.filter(d => d.status === "Pelanggaran");
-    
-    // Hitung frekuensi per jenis
+    // --- Hitung Data Pie & Bar ---
     const counts = {};
-    pelanggaranAktif.forEach(item => {
+    const dateCounts = {};
+
+    data.forEach(item => {
+        // Untuk Pie & Bar
         counts[item.jenis] = (counts[item.jenis] || 0) + 1;
+        // Untuk Line Chart
+        dateCounts[item.tanggal] = (dateCounts[item.tanggal] || 0) + 1;
     });
 
     const labels = Object.keys(counts);
     const values = Object.values(counts);
 
-    // Render Pie Chart
+    // --- Render Pie Chart ---
     if (pieChartInstance) pieChartInstance.destroy(); 
     pieChartInstance = new Chart(ctxPie, {
         type: 'pie',
@@ -367,70 +370,220 @@ function renderDosenCharts(data) {
                 backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#198754', '#0dcaf0', '#6f42c1', '#d63384']
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'right', labels: { boxWidth: 12 } }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12 } } } }
     });
 
-    // Render Bar Chart
+    // --- Render Bar Chart ---
     if (barChartInstance) barChartInstance.destroy();
     barChartInstance = new Chart(ctxBar, {
         type: 'bar',
         data: {
             labels: labels,
+            datasets: [{ label: 'Jumlah', data: values, backgroundColor: '#0d6efd', borderRadius: 4 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+    });
+
+    // --- Render Line Chart (Sort Tanggal Secara Kronologis) ---
+    const sortedDates = Object.keys(dateCounts).sort((a, b) => {
+        const [d1, m1, y1] = a.split('/');
+        const [d2, m2, y2] = b.split('/');
+        return new Date(y1, m1-1, d1) - new Date(y2, m2-1, d2);
+    });
+    
+    const lineValues = sortedDates.map(date => dateCounts[date]);
+
+    if (lineChartInstance) lineChartInstance.destroy();
+    lineChartInstance = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: sortedDates,
             datasets: [{
-                label: 'Jumlah Pelanggar',
-                data: values,
-                backgroundColor: '#0d6efd',
-                borderRadius: 4
+                label: 'Total Pelanggaran',
+                data: lineValues,
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#dc3545'
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-            plugins: { legend: { display: false } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
     });
 }
 
-// --- LOGIKA FILTER FRONTEND ---
-document.getElementById('filterTanggal')?.addEventListener('change', filterDosenData);
-document.getElementById('filterJenis')?.addEventListener('change', filterDosenData);
+function renderLeaderboard(data) {
+    const tbody = document.getElementById("leaderboardBody");
+    if(!tbody) return;
+
+    // Hitung frekuensi per NIU
+    const lbMap = {};
+    data.forEach(item => {
+        const key = `${item.niu}|${item.nama}`;
+        lbMap[key] = (lbMap[key] || 0) + 1;
+    });
+
+    // Konversi ke array, sort descending, potong top 5
+    const lbArray = Object.keys(lbMap).map(key => {
+        const [niu, nama] = key.split('|');
+        return { niu, nama, count: lbMap[key] };
+    }).sort((a, b) => b.count - a.count).slice(0, 5);
+
+    if (lbArray.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-muted py-3">Belum ada data.</td></tr>';
+        return;
+    }
+
+    let html = "";
+    lbArray.forEach((user, index) => {
+        let badgeClass = "bg-secondary";
+        if(index === 0) badgeClass = "bg-danger";
+        else if(index === 1) badgeClass = "bg-warning text-dark";
+        else if(index === 2) badgeClass = "bg-primary";
+
+        html += `
+            <tr>
+                <td class="fw-bold text-muted">${index + 1}</td>
+                <td>${user.niu}</td>
+                <td class="text-start fw-semibold">${user.nama}</td>
+                <td><span class="badge ${badgeClass} rounded-pill">${user.count}x</span></td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
+
+// --- LOGIKA FILTER TABEL (RENTANG TANGGAL) ---
+document.getElementById('filterTglMulai')?.addEventListener('change', filterDosenData);
+document.getElementById('filterTglSelesai')?.addEventListener('change', filterDosenData);
+document.getElementById('filterJenisTabel')?.addEventListener('change', filterDosenData);
 document.getElementById('filterSearch')?.addEventListener('input', filterDosenData);
 
 function filterDosenData() {
-    const tgl = document.getElementById('filterTanggal').value; 
-    const jenis = document.getElementById('filterJenis').value;
+    const start = document.getElementById('filterTglMulai').value; 
+    const end = document.getElementById('filterTglSelesai').value;
+    const jenis = document.getElementById('filterJenisTabel').value;
     const search = document.getElementById('filterSearch').value.toLowerCase();
 
-    // Konversi tgl (YYYY-MM-DD) ke format Spreadsheet (DD/MM/YYYY) untuk pencocokan
-    let searchTgl = "";
-    if (tgl) {
-        const [y, m, d] = tgl.split("-");
-        searchTgl = `${d}/${m}/${y}`;
-    }
+    let startDate = start ? new Date(start) : null;
+    let endDate = end ? new Date(end) : null;
+    if (startDate) startDate.setHours(0,0,0,0);
+    if (endDate) endDate.setHours(23,59,59,999);
 
-    const filtered = globalDosenData.filter(item => {
-        const matchTgl = searchTgl === "" || item.tanggal === searchTgl;
+    displayedDosenData = globalDosenData.filter(item => {
+        // Parsing Tanggal (DD/MM/YYYY)
+        const parts = item.tanggal.split('/');
+        const itemDate = parts.length === 3 ? new Date(parts[2], parts[1]-1, parts[0]) : null;
+
+        const matchTgl = (!startDate || (itemDate && itemDate >= startDate)) && 
+                         (!endDate || (itemDate && itemDate <= endDate));
         const matchJenis = jenis === "Semua" || item.jenis.includes(jenis);
         const matchSearch = search === "" || item.nama.toLowerCase().includes(search) || item.niu.toLowerCase().includes(search);
+        
         return matchTgl && matchJenis && matchSearch;
     });
 
-    renderDosenTables(filtered); 
-    // Opsional: renderDosenCharts(filtered) jika ingin chart ikut berubah saat di-filter
+    sortData(currentSortColumn, currentSortAsc); // Render ada di dalam sortData
 }
 
 function resetFilter() {
-    document.getElementById('filterTanggal').value = '';
-    document.getElementById('filterJenis').value = 'Semua';
+    document.getElementById('filterTglMulai').value = '';
+    document.getElementById('filterTglSelesai').value = '';
+    document.getElementById('filterJenisTabel').value = 'Semua';
     document.getElementById('filterSearch').value = '';
-    processDosenDashboard(globalDosenData);
+    filterDosenData();
+}
+
+// --- LOGIKA SORTING & RENDER TABEL ---
+function sortTable(column) {
+    if (currentSortColumn === column) {
+        currentSortAsc = !currentSortAsc; // Balik urutan jika klik kolom yang sama
+    } else {
+        currentSortColumn = column;
+        currentSortAsc = true; // Default ascending untuk kolom baru
+    }
+    sortData(currentSortColumn, currentSortAsc);
+}
+
+function sortData(column, asc) {
+    displayedDosenData.sort((a, b) => {
+        let valA = a[column] || "";
+        let valB = b[column] || "";
+
+        // Handling khusus untuk tipe data Nomor & Tanggal
+        if (column === 'no') {
+            valA = parseInt(valA) || 0;
+            valB = parseInt(valB) || 0;
+        } else if (column === 'tanggal' || column === 'tgl_pemutihan') {
+            const pA = String(valA).split('/');
+            const pB = String(valB).split('/');
+            valA = pA.length === 3 ? new Date(pA[2], pA[1]-1, pA[0]).getTime() : 0;
+            valB = pB.length === 3 ? new Date(pB[2], pB[1]-1, pB[0]).getTime() : 0;
+        } else {
+            valA = String(valA).toLowerCase();
+            valB = String(valB).toLowerCase();
+        }
+
+        if (valA < valB) return asc ? -1 : 1;
+        if (valA > valB) return asc ? 1 : -1;
+        return 0;
+    });
+    
+    renderDosenTables(displayedDosenData);
+}
+
+function renderDosenTables(data) {
+    const tbPelanggaran = document.getElementById("tabelDosenPelanggaran");
+    const tbPemutihan = document.getElementById("tabelDosenPemutihan");
+    if (!tbPelanggaran || !tbPemutihan) return; 
+
+    let htmlPel = "", htmlPem = "";
+    let countPel = 0, countPem = 0;
+    
+    // Variabel penghitung dinamis agar selalu mulai dari 1
+    let indexPel = 1; 
+    let indexPem = 1;
+
+    data.forEach(item => {
+        const buktiHtml = (item.link === "-" || item.link.trim() === "") 
+            ? '<span class="badge bg-light text-muted border">Tidak ada</span>' 
+            : `<a href="${item.link}" target="_blank" class="btn btn-sm btn-outline-primary py-0"><i class="bi bi-link-45deg"></i> Bukti</a>`;
+
+        if (item.status === "Pelanggaran") {
+            countPel++;
+            htmlPel += `
+                <tr>
+                    <td class="ps-3 fw-bold text-muted">${indexPel++}</td>
+                    <td>${item.tanggal}</td>
+                    <td class="fw-semibold text-danger">${item.jenis}</td>
+                    <td>${item.niu}</td>
+                    <td class="fw-bold">${item.nama}</td>
+                    <td class="text-muted">${item.keterangan}</td>
+                    <td>${buktiHtml}</td>
+                </tr>`;
+        } else if (item.status === "Pemutihan") {
+            countPem++;
+            htmlPem += `
+                <tr>
+                    <td class="ps-3 fw-bold text-muted">${indexPem++}</td>
+                    <td>${item.tanggal}</td>
+                    <td class="fw-semibold text-success">${item.jenis}</td>
+                    <td>${item.niu}</td>
+                    <td class="fw-bold">${item.nama}</td>
+                    <td class="text-muted">${item.keterangan}</td>
+                    <td class="fw-bold text-success">${item.tgl_pemutihan}</td>
+                </tr>`;
+        }
+    });
+
+    tbPelanggaran.innerHTML = htmlPel || '<tr><td colspan="7" class="text-center py-3">Tidak ada data.</td></tr>';
+    tbPemutihan.innerHTML = htmlPem || '<tr><td colspan="7" class="text-center py-3">Tidak ada data.</td></tr>';
+
+    const infoPel = document.getElementById("infoPelanggaranAktif");
+    const infoPem = document.getElementById("infoPemutihan");
+    if(infoPel) infoPel.textContent = `Menampilkan: ${countPel} data pelanggaran`;
+    if(infoPem) infoPem.textContent = `Menampilkan: ${countPem} data pemutihan`;
 }
 
 // --- LOGIKA EDIT PEMUTIHAN (SWEETALERT) ---
@@ -457,8 +610,6 @@ async function promptPemutihan() {
 
     if (isConfirmed) {
         const noToPutihkan = document.getElementById('swal-putih-select').value;
-        
-        // Ambil tanggal hari ini untuk Tgl Pemutihan
         const today = new Date();
         const tglHariIni = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
 
@@ -476,11 +627,64 @@ async function promptPemutihan() {
         .then(data => {
             if (data.status === "ok") {
                 Swal.fire("Berhasil", "Data pelanggaran telah diputihkan.", "success").then(() => {
-                    loadDosenData(); // Refresh data dari server
+                    loadDosenData(); // Auto-refresh data terbaru
                 });
             } else {
                 Swal.fire("Gagal", data.message, "error");
             }
+        });
+    }
+}
+
+async function promptHapus() {
+    const aktif = globalDosenData.filter(d => d.status === "Pelanggaran");
+    if(aktif.length === 0) return Swal.fire("Info", "Tidak ada data untuk dihapus.", "info");
+
+    let optionsHtml = '<select id="swal-hapus-select" class="form-select border-danger">';
+    aktif.forEach(item => {
+        optionsHtml += `<option value="${item.no}">#${item.no} - ${item.nama} (${item.jenis})</option>`;
+    });
+    optionsHtml += '</select>';
+
+    const { isConfirmed } = await Swal.fire({
+        title: 'Hapus Laporan Invalid?',
+        html: `Pilih laporan palsu/invalid yang ingin <b>dihapus permanen</b>:<br><br>${optionsHtml}<br><br>
+               <div class="alert alert-danger p-2 mt-3 small text-start">
+                   <i class="bi bi-exclamation-triangle-fill me-1"></i> <b>Peringatan:</b> Tindakan ini akan menghapus baris dari Spreadsheet dan data tidak dapat dikembalikan!
+               </div>`,
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545', // Merah
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-trash3-fill"></i> Ya, Hapus Permanen',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+    });
+
+    if (isConfirmed) {
+        const noToHapus = document.getElementById('swal-hapus-select').value;
+        Swal.fire({ title: 'Menghapus Data...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        fetch(GAS_PELANGGARAN_SENDIRI, { 
+            method: 'POST',
+            body: JSON.stringify({
+                action: "delete_pelanggaran",
+                no: noToHapus
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "ok") {
+                Swal.fire("Terhapus!", "Laporan invalid telah dihapus permanen dari sistem.", "success").then(() => {
+                    loadDosenData(); // Refresh UI setelah baris di spreadsheet terhapus
+                });
+            } else {
+                Swal.fire("Gagal", data.message, "error");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            Swal.fire('Error', 'Gagal terhubung ke server.', 'error');
         });
     }
 }
