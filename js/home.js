@@ -298,9 +298,7 @@ function loadDosenData() {
         if (btn) btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Refresh';
         if (response.status === "ok") {
             globalDosenData = response.data;
-            displayedDosenData = [...globalDosenData];
-            
-            // Render Chart dengan Filter yang Aktif
+            setDefaultFilterValues();
             filterAndRenderCharts(); 
             // Render Table (Sort descending by default agar terbaru di atas)
             sortData(currentSortColumn, currentSortAsc);
@@ -488,10 +486,12 @@ function filterDosenData() {
 }
 
 function resetFilter() {
-    document.getElementById('filterTglMulai').value = '';
-    document.getElementById('filterTglSelesai').value = '';
-    document.getElementById('filterJenisTabel').value = 'Semua';
-    document.getElementById('filterSearch').value = '';
+    setDefaultFilterValues();
+    const fj = document.getElementById('filterJenisTabel');
+    const fs = document.getElementById('filterSearch');
+    if(fj) fj.value = 'Semua';
+    if(fs) fs.value = '';
+    filterAndRenderCharts();
     filterDosenData();
 }
 
@@ -687,4 +687,28 @@ async function promptHapus() {
             Swal.fire('Error', 'Gagal terhubung ke server.', 'error');
         });
     }
+}
+
+function setDefaultFilterValues() {
+    const now = new Date();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, '0'); // Format: "04"
+    const currentYear = String(now.getFullYear()); // Format: "2026"
+
+    // 1. Set Filter untuk Chart (Semua Bulan, Tahun Berjalan)
+    const cb = document.getElementById('chartBulan');
+    const ct = document.getElementById('chartTahun');
+    if (cb) cb.value = "Semua";
+    if (ct) ct.value = currentYear;
+
+    // 2. Set Filter Rentang Tanggal untuk Tabel (Awal bulan s/d Akhir bulan)
+    const firstDay = `${currentYear}-${currentMonth}-01`;
+    const lastDayDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const lastDay = `${currentYear}-${currentMonth}-${String(lastDayDate).padStart(2, '0')}`;
+
+    const ftMulai = document.getElementById('filterTglMulai');
+    const ftSelesai = document.getElementById('filterTglSelesai');
+    
+    if (ftMulai) ftMulai.value = firstDay;
+    if (ftSelesai) ftSelesai.value = lastDay;
+    
 }
