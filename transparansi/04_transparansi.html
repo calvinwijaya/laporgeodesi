@@ -1,0 +1,171 @@
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0 fw-bold text-primary"><i class="bi bi-clipboard-check-fill me-2"></i>Kelola Transparansi Nilai</h4>
+            <small class="text-muted" id="subjudulTransparansiDosen">Memuat akses Anda...</small>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="form-check form-switch d-none" id="adminToggleContainer">
+                <input class="form-check-input fs-4 cursor-pointer" type="checkbox" role="switch" id="toggleTransparansi" onchange="window.ubahStatusTransparansi(this)">
+                <label class="form-check-label fw-bold mt-1 ms-1" for="toggleTransparansi" id="labelToggle">Memuat...</label>
+            </div>
+            
+            <button class="btn btn-outline-primary shadow-sm" onclick="window.loadDosenTransparansi()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4 rounded-4">
+        <div class="card-header bg-danger text-white rounded-top-4 p-3">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-hourglass-split me-2"></i>Menunggu Konfirmasi Anda</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-hover table-striped mb-0 align-middle small">
+                    <thead class="table-light text-secondary sticky-top">
+                        <tr>
+                            <th class="ps-3">No</th>
+                            <th>Tanggal</th>
+                            <th>NIM</th>
+                            <th>Nama Mahasiswa</th>
+                            <th>Mata Kuliah</th>
+                            <th>Kelas</th>
+                            <th class="th-dosen d-none text-danger">Dosen Pengampu</th> <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbDosenTransAktif">
+                        <tr><td colspan="8" class="text-center py-4">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-success text-white rounded-top-4 p-3">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-check-all me-2"></i>Telah Dikonfirmasi</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-hover table-striped mb-0 align-middle small">
+                    <thead class="table-light text-secondary sticky-top">
+                        <tr>
+                            <th class="ps-3">Tgl Diajukan</th>
+                            <th>Tgl Selesai</th>
+                            <th>NIM</th>
+                            <th>Nama Mahasiswa</th>
+                            <th>Mata Kuliah</th>
+                            <th>Kelas</th>
+                            <th class="th-dosen d-none text-danger">Dosen Pengampu</th> <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbDosenTransSelesai">
+                        <tr><td colspan="8" class="text-center py-4">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalProsesTransparansi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-primary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Berikan Transparansi Nilai</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form id="formProsesTransparansi">
+                    <input type="hidden" id="prsNo">
+                    
+                    <div class="card border-0 bg-white shadow-sm mb-3">
+                        <div class="card-body p-3 small">
+                            <div class="row g-2">
+                                <div class="col-md-4"><strong class="text-muted">Tanggal:</strong> <span id="prsTgl"></span></div>
+                                <div class="col-md-4"><strong class="text-muted">NIM:</strong> <span id="prsNim"></span></div>
+                                <div class="col-md-4"><strong class="text-muted">Nama:</strong> <span class="fw-bold" id="prsNama"></span></div>
+                                <div class="col-md-8"><strong class="text-muted">Matkul:</strong> <span id="prsMatkul"></span></div>
+                                <div class="col-md-4"><strong class="text-muted">Kelas:</strong> <span id="prsKelas"></span></div>
+                                <div class="col-12 mt-3"><strong class="text-danger d-block border-bottom pb-1 mb-1">Hal yang Dikonfirmasi:</strong> <span id="prsHal"></span></div>
+                                <div class="col-12"><strong class="text-danger d-block border-bottom pb-1 mb-1">Alasan Mahasiswa:</strong> <span class="fst-italic text-muted" id="prsAlasan"></span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-success">Nilai Hasil Konfirmasi Akhir</label>
+                        <select class="form-select border-success fw-bold" id="prsNilai" required>
+                            <option value="" disabled selected>Pilih Nilai Akhir...</option>
+                            <option value="A">A</option><option value="A/B">A/B</option><option value="A-">A-</option>
+                            <option value="B+">B+</option><option value="B">B</option><option value="B/C">B/C</option><option value="B-">B-</option>
+                            <option value="C+">C+</option><option value="C">C</option><option value="C/D">C/D</option><option value="C-">C-</option>
+                            <option value="D">D</option><option value="E">E</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-success">Alasan yang Mendasari Keputusan</label>
+                        <textarea class="form-control border-success" id="prsAlasanDosen" rows="4" required placeholder="Jelaskan dasar pemberian nilai secara komprehensif..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top-0 bg-light rounded-bottom-4">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary fw-bold px-4" onclick="window.simpanProsesTransparansi()">
+                    <i class="bi bi-send-check-fill me-1"></i> Kirim Transparansi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDetailTransparansi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-success text-white rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-journal-text me-2"></i>Detail Transparansi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6 class="fw-bold text-dark mb-1" id="dtlMatkul"></h6>
+                        <p class="small text-muted mb-2"><i class="bi bi-person me-1"></i><span id="dtlNama"></span> (<span id="dtlNim"></span>)</p>
+                        <hr class="my-2">
+                        <div class="small mb-1"><strong class="text-muted">Tgl Diajukan:</strong> <span id="dtlTglMulai"></span></div>
+                        <div class="small mb-1"><strong class="text-muted">Tgl Dikonfirmasi:</strong> <span class="text-success fw-bold" id="dtlTglSelesai"></span></div>
+                        <div class="small mb-1"><strong class="text-muted">Dosen:</strong> <span id="dtlDosen"></span></div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3 bg-white rounded-3 border h-100">
+                            <div class="small fw-bold text-danger mb-1">Hal Dikonfirmasi:</div>
+                            <p class="small mb-2 italic" id="dtlHal"></p>
+                            <div class="small fw-bold text-danger mb-1">Alasan Mahasiswa:</div>
+                            <p class="small mb-0 text-muted" id="dtlAlasan"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-success bg-success bg-opacity-10 rounded-3 mt-2">
+                    <div class="card-body">
+                        <h6 class="fw-bold text-success mb-2"><i class="bi bi-check-circle-fill me-2"></i>Keputusan Dosen</h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-2 text-center border-end border-success">
+                                <div class="small fw-bold">Nilai Akhir:</div>
+                                <div class="display-6 fw-bold text-success" id="dtlNilai"></div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="small fw-bold">Alasan Keputusan:</div>
+                                <p class="small mb-0 text-dark" id="dtlAlasanDosen"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 bg-light rounded-bottom-4">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>

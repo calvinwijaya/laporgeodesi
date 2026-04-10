@@ -30,31 +30,66 @@ if (!user) {
         }
 
         const menuSelfReport = document.getElementById("menuSelfReport");
+        const menuTransparansiMahasiswa = document.getElementById("menuTransparansiMahasiswa");
+        const menuTransparansiDosen = document.getElementById("menuTransparansiDosen");
+
         const dosenDashboard = document.getElementById("dosenDashboard");
         const mahasiswaDashboard = document.getElementById("mahasiswaDashboard");
 
         const isAdmin = ADMIN.includes(user.email);
 
+        // --- 1. AKSES MENU SELF REPORT (Mahasiswa & Admin) ---
         if (user.status === "Mahasiswa" || isAdmin) {
             if (menuSelfReport) menuSelfReport.classList.remove("d-none");
         } else {
             if (menuSelfReport) menuSelfReport.classList.add("d-none");
         }
 
-        if (user.status === "Mahasiswa") {
+        // --- 2. AKSES TAMPILAN MAHASISWA ---
+        if (user.status === "Mahasiswa" || isAdmin) {
             if (mahasiswaDashboard) mahasiswaDashboard.classList.remove("d-none");
+            if (menuTransparansiMahasiswa) menuTransparansiMahasiswa.classList.remove("d-none"); 
+            
+            // Safety check: Admin biasanya tidak punya NIU, jadi jangan fetch error
             if (user.niu && user.niu !== "-") {
                 loadRiwayatMahasiswa(user.niu);
+            } else if (isAdmin) {
+                renderTabelKosong("Mode Admin: Tidak ada data riwayat pribadi (Anda bukan mahasiswa).");
             } else {
-                renderTabelKosong("NIU tidak ditemukan. Hubungi admin.");
+                renderTabelKosong("NIU Anda tidak terdeteksi. Silakan Logout dan Login kembali.");
             }
-        } else {
-            if (dosenDashboard) dosenDashboard.classList.remove("d-none");
-            if (isAdmin && sidebarUserRole) {
-                sidebarUserRole.innerHTML = `${user.status} <span class="badge bg-warning text-dark ms-1">Admin</span>`;
-            }
+        }
 
-            loadDosenData();
+        // --- 3. AKSES TAMPILAN DOSEN/TENDIK ---
+        if (user.status !== "Mahasiswa" || isAdmin) {
+            // Tampilkan komponen dashboard dosen
+            if (dosenDashboard) dosenDashboard.classList.remove("d-none");
+            if (menuTransparansiDosen) menuTransparansiDosen.classList.remove("d-none");
+
+            // Ambil elemen tombol aksi
+            const btnTambahBatch = document.getElementById("btnTambahBatch");
+            const btnPutihkan = document.getElementById("btnPutihkan");
+            const btnHapusInvalid = document.getElementById("btnHapusInvalid");
+
+            // --- LOGIKA PEMBATASAN ADMIN ---
+            if (isAdmin) {
+                // Beri label Admin di sidebar
+                if (sidebarUserRole) {
+                    sidebarUserRole.innerHTML = `${user.status} <span class="badge bg-warning text-dark ms-1">Admin</span>`;
+                }
+                // Tampilkan tombol khusus admin
+                if (btnTambahBatch) btnTambahBatch.classList.remove("d-none");
+                if (btnPutihkan) btnPutihkan.classList.remove("d-none");
+                if (btnHapusInvalid) btnHapusInvalid.classList.remove("d-none");
+            } else {
+                // Sembunyikan tombol untuk Dosen biasa (Safety double check)
+                if (btnTambahBatch) btnTambahBatch.classList.add("d-none");
+                if (btnPutihkan) btnPutihkan.classList.add("d-none");
+                if (btnHapusInvalid) btnHapusInvalid.classList.add("d-none");
+            }
+            
+            // Muat data untuk chart dan tabel
+            loadDosenData(); 
         }
     });
 }
@@ -90,6 +125,8 @@ function loadRiwayatMahasiswa(niu) {
             
             const tbPelanggaran = document.getElementById("tabelPelanggaranBody");
             const tbPemutihan = document.getElementById("tabelPemutihanBody");
+
+            if (!tbPelanggaran || !tbPemutihan) return;
             
             let htmlPelanggaran = "";
             let htmlPemutihan = "";
@@ -143,9 +180,14 @@ function loadRiwayatMahasiswa(niu) {
 }
 
 function renderTabelKosong(pesan) {
+    const tbPel = document.getElementById("tabelPelanggaranBody");
+    const tbPem = document.getElementById("tabelPemutihanBody");
+
+    if (!tbPel || !tbPem) return;
+
     const errorHtml = `<tr><td colspan="4" class="text-center text-danger py-4">${pesan}</td></tr>`;
-    document.getElementById("tabelPelanggaranBody").innerHTML = errorHtml;
-    document.getElementById("tabelPemutihanBody").innerHTML = errorHtml;
+    tbPel.innerHTML = errorHtml;
+    tbPem.innerHTML = errorHtml;
 }
 
 const Loading = {
@@ -196,7 +238,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const routes = { 
         'laporsendiri': '01_laporsendiri.html',
         'buataduan': '02_buataduan.html',
-        'aspirasi': '03_aspirasi.html'
+        'aspirasi': '03_aspirasi.html',
+        'dosentransparansi': 'transparansi/04_transparansi.html',
+        'ajukantransparansi': 'transparansi/04a_ajukantransparansi.html',
+        'pantautransparansi': 'transparansi/04b_pantautransparansi.html',
+        'hasiltransparansi': 'transparansi/04c_hasiltransparansi.html',
     };
     if (pageKey && routes[pageKey]) loadPage(routes[pageKey], pageKey);
 });
@@ -231,10 +277,16 @@ function loadPage(eventOrPage, pagePath, key) {
             const activeLink = document.querySelector(`a[onclick*="'${finalKey}'"]`);
             if (activeLink) activeLink.classList.add('active');
 
-            // Load script berdasarkan halaman yang dibuka
-            if (finalKey === 'laporsendiri') loadScript('js/01_laporsendiri.js')
-            else if (finalKey === 'buataduan') loadScript('js/02_buataduan.js')
-            else if (finalKey === 'aspirasi') loadScript('js/03_aspirasi.js')
+            // Load script berdasarkan halaman yang dibuka (pastikan letak foldernya benar)
+            if (finalKey === 'laporsendiri') loadScript('js/01_laporsendiri.js');
+            else if (finalKey === 'buataduan') loadScript('js/02_buataduan.js');
+            else if (finalKey === 'aspirasi') loadScript('js/03_aspirasi.js');
+            
+            // Script untuk Transparansi
+            else if (finalKey === 'ajukantransparansi') loadScript('transparansi/04a_ajukantransparansi.js');
+            else if (finalKey === 'pantautransparansi') loadScript('transparansi/04b_pantautransparansi.js');
+            else if (finalKey === 'hasiltransparansi') loadScript('transparansi/04c_hasiltransparansi.js');
+            else if (finalKey === 'dosentransparansi') loadScript('transparansi/04_transparansi.js');
         })
         .catch(err => {
             console.error(err);
@@ -315,8 +367,15 @@ function loadDosenData() {
 
 // --- LOGIKA FILTER & RENDER CHART (PIE, BAR, LINE, LEADERBOARD) ---
 function filterAndRenderCharts() {
-    const bln = document.getElementById('chartBulan').value;
-    const thn = document.getElementById('chartTahun').value;
+    // Cari elemen
+    const elBulan = document.getElementById('chartBulan');
+    const elTahun = document.getElementById('chartTahun');
+    
+    // --- SAFETY CHECK: Jika user pindah halaman sebelum data load, hentikan fungsi ---
+    if (!elBulan || !elTahun) return; 
+
+    const bln = elBulan.value;
+    const thn = elTahun.value;
     
     let filteredForChart = globalDosenData.filter(d => d.status === "Pelanggaran");
     
@@ -459,10 +518,19 @@ document.getElementById('filterJenisTabel')?.addEventListener('change', filterDo
 document.getElementById('filterSearch')?.addEventListener('input', filterDosenData);
 
 function filterDosenData() {
-    const start = document.getElementById('filterTglMulai').value; 
-    const end = document.getElementById('filterTglSelesai').value;
-    const jenis = document.getElementById('filterJenisTabel').value;
-    const search = document.getElementById('filterSearch').value.toLowerCase();
+    // Cari elemen
+    const elTglMulai = document.getElementById('filterTglMulai');
+    const elTglSelesai = document.getElementById('filterTglSelesai');
+    const elJenis = document.getElementById('filterJenisTabel');
+    const elSearch = document.getElementById('filterSearch');
+
+    // --- SAFETY CHECK: Jika halaman sudah berganti, hentikan fungsi ---
+    if (!elTglMulai || !elTglSelesai || !elJenis || !elSearch) return;
+
+    const start = elTglMulai.value; 
+    const end = elTglSelesai.value;
+    const jenis = elJenis.value;
+    const search = elSearch.value.toLowerCase();
 
     let startDate = start ? new Date(start) : null;
     let endDate = end ? new Date(end) : null;
@@ -482,7 +550,7 @@ function filterDosenData() {
         return matchTgl && matchJenis && matchSearch;
     });
 
-    sortData(currentSortColumn, currentSortAsc); // Render ada di dalam sortData
+    sortData(currentSortColumn, currentSortAsc); 
 }
 
 function resetFilter() {

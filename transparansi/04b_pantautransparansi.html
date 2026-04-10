@@ -1,0 +1,70 @@
+<div class="container-fluid py-3">
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-primary text-white rounded-top-4 p-3 d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>Pantau Pengajuan Transparansi Anda!</h4>
+                <small class="text-light">Kelola dan pantau status pengajuan yang telah Anda kirim.</small>
+            </div>
+            <button class="btn btn-light btn-sm fw-bold text-primary shadow-sm" onclick="window.loadPantauTransparansi()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+            </button>
+        </div>
+        <div class="card-body p-4 bg-light">
+            <div class="row g-3" id="containerCardPengajuan">
+                </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalEditTransparansi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-warning text-dark rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Pengajuan Transparansi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form id="formEditTransparansi">
+                    <input type="hidden" id="editNo"> <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold text-secondary">Mata Kuliah</label>
+                            <input class="form-control border-warning" list="listEditMatkul" id="editMatkul" required>
+                            <datalist id="listEditMatkul"></datalist>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-secondary">Kelas</label>
+                            <select class="form-select border-warning" id="editKelas" required>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="IUP">IUP</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary">Dosen Pengampu</label>
+                        <input class="form-control border-warning" list="listEditDosen" id="editDosen" required>
+                        <datalist id="listEditDosen"></datalist>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary">Hal yang dikonfirmasi</label>
+                        <textarea class="form-control" id="editHal" rows="3" required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary">Alasan yang mendasari</label>
+                        <textarea class="form-control" id="editAlasan" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top-0 bg-light rounded-bottom-4">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-warning fw-bold px-4" onclick="simpanEditTransparansi()">
+                    <i class="bi bi-save-fill me-1"></i> Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

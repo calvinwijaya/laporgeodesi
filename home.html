@@ -56,6 +56,36 @@
                     <i class="bi bi-megaphone me-2"></i> <span class="label">Sampaikan Aspirasi</span>
                 </a>
             </li>
+            <li class="nav-item d-none" id="menuTransparansiDosen">
+                <a href="#" onclick="loadPage(event, 'transparansi/04_transparansi.html', 'dosentransparansi')" class="nav-link text-white">
+                    <i class="bi bi-clipboard-check me-2"></i> <span class="label">Kelola Transparansi</span>
+                </a>
+            </li>
+            <li class="nav-item d-none" id="menuTransparansiMahasiswa">
+                <a class="nav-link collapsed text-white d-flex justify-content-between align-items-center" href="#" data-bs-toggle="collapse" data-bs-target="#collapseTransparansi" aria-expanded="false">
+                    <span><i class="bi bi-search me-2"></i>Transparansi Nilai</span>
+                    <i class="bi bi-chevron-down small"></i>
+                </a>
+                <div class="collapse" id="collapseTransparansi">
+                    <ul class="nav flex-column ms-3 mt-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="#" onclick="loadPage(event, 'transparansi/04a_ajukantransparansi.html', 'ajukantransparansi')">
+                                <i class="bi bi-file-earmark-plus me-2"></i> Ajukan Transparansi
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="#" onclick="loadPage(event, 'transparansi/04b_pantautransparansi.html', 'pantautransparansi')">
+                                <i class="bi bi-clock-history me-2"></i> Pantau Pengajuan
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="#" onclick="loadPage(event, 'transparansi/04c_hasiltransparansi.html', 'hasiltransparansi')">
+                                <i class="bi bi-journal-check me-2"></i> Lihat Hasil
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
             <hr class="text-white my-2">
             <li><a href="#" class="nav-link text-danger" id="btnLogout"><i class="bi bi-box-arrow-right me-2"></i><span class="label">Log Out</span></a></li>
             <li><a href="https://ugm.id/mydtgd" class="nav-link mt-1" target="_blank" rel="noopener noreferrer"><i class="bi bi-grid-fill me-2"></i><span class="label">Ke myDTGD</span></a></li>
@@ -196,13 +226,13 @@
                             <button class="btn btn-sm btn-outline-light me-2" onclick="loadDosenData()" id="btnRefreshDosen">
                                 <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                             </button>
-                            <button class="btn btn-sm btn-light fw-bold text-danger me-2 shadow-sm" onclick="bukaModalBatch()">
+                            <button class="btn btn-sm btn-light fw-bold text-danger me-2 shadow-sm d-none" id="btnTambahBatch" onclick="bukaModalBatch()">
                                 <i class="bi bi-plus-circle-fill me-1"></i>Tambah
                             </button>
-                            <button class="btn btn-sm btn-warning fw-bold text-dark me-2" onclick="promptPemutihan()">
+                            <button class="btn btn-sm btn-warning fw-bold text-dark me-2 d-none" id="btnPutihkan" onclick="promptPemutihan()">
                                 <i class="bi bi-pencil-square me-1"></i>Edit (Putihkan)
                             </button>
-                            <button class="btn btn-sm btn-dark fw-bold text-white shadow-sm" onclick="promptHapus()">
+                            <button class="btn btn-sm btn-dark fw-bold text-white shadow-sm d-none" id="btnHapusInvalid" onclick="promptHapus()">
                                 <i class="bi bi-trash3-fill me-1"></i>Hapus Invalid
                             </button>
                         </div>
