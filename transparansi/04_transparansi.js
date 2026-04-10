@@ -170,6 +170,10 @@ window.bukaModalProses = function(no) {
     document.getElementById("prsNilai").value = "";
     document.getElementById("prsAlasanDosen").value = "";
 
+    const inpGbr = document.getElementById("prsGambar");
+    if(inpGbr) inpGbr.value = "";
+    document.getElementById("prsGambarBase64").value = "";
+
     const modal = new bootstrap.Modal(document.getElementById('modalProsesTransparansi'));
     modal.show();
 };
@@ -202,7 +206,8 @@ window.simpanProsesTransparansi = function() {
                 no: document.getElementById("prsNo").value,
                 tgl_selesai: tglSelesai,
                 nilai_hasil: nilai,
-                alasan_keputusan: alasanDosen
+                alasan_keputusan: alasanDosen,
+                gambar_bukti: document.getElementById("prsGambarBase64").value || "-"
             };
 
             fetch(GAS_TRANSPARANSI, {
@@ -241,8 +246,76 @@ window.bukaModalDetail = function(no) {
     document.getElementById("dtlNilai").textContent = item.nilai_hasil;
     document.getElementById("dtlAlasanDosen").textContent = item.alasan_keputusan;
 
+    const imgContainer = document.getElementById("dtlGambarContainer");
+    const imgElement = document.getElementById("dtlGambar");
+    
+    // Jika gambar berupa teks Base64, tampilkan
+    if (item.gambar_bukti && item.gambar_bukti.startsWith("data:image")) {
+        imgElement.src = item.gambar_bukti;
+        imgContainer.classList.remove("d-none");
+    } else {
+        imgElement.src = "";
+        imgContainer.classList.add("d-none");
+    }
+
     const modal = new bootstrap.Modal(document.getElementById('modalDetailTransparansi'));
     modal.show();
 };
 
 window.loadDosenTransparansi();
+
+// --- AUTO COMPRESS GAMBAR SAAT UPLOAD (SMART COMPRESSION) ---
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'prsGambar') {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Tampilkan loading spinner agar dosen tahu gambar sedang diolah
+        Swal.fire({ title: 'Memproses Gambar...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                // Ubah lebar maksimal menjadi 600px
+                let MAX_WIDTH = 600; 
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                let quality = 0.6;
+                let base64Str = canvas.toDataURL('image/jpeg', quality); 
+
+                // --- SMART LOOPING ---
+                // Paksa turunkan kualitas jika teks base64 melebihi batas 45.000 karakter
+                while (base64Str.length > 45000 && quality > 0.1) {
+                    quality -= 0.1;
+                    base64Str = canvas.toDataURL('image/jpeg', quality);
+                }
+
+                // Jika sudah mentok kualitasnya tapi masih terlalu besar, paksa potong dimensinya jadi setengah
+                if (base64Str.length > 45000) {
+                    canvas.width = width / 2;
+                    canvas.height = height / 2;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    base64Str = canvas.toDataURL('image/jpeg', 0.5);
+                }
+
+                document.getElementById('prsGambarBase64').value = base64Str;
+                Swal.close(); // Tutup loading setelah selesai kompresi
+            }
+            img.src = event.target.result;
+        }
+        reader.readAsDataURL(file);
+    }
+});

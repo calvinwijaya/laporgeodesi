@@ -73,6 +73,15 @@ window.renderHasilCards = function(data) {
                                         <div class="small fw-bold">Alasan Keputusan Dosen:</div>
                                         <p class="small mb-0 text-dark">${item.alasan_keputusan}</p>
                                     </div>
+                                    <div class="col-md-8">
+                                        <div class="small fw-bold">Alasan Keputusan Dosen:</div>
+                                        <p class="small mb-0 text-dark">${item.alasan_keputusan}</p>
+                                        
+                                        ${(item.gambar_bukti && item.gambar_bukti.startsWith("data:image")) 
+                                            ? `<div class="mt-2"><div class="small fw-bold mb-1">Lampiran Dosen:</div>
+                                               <img src="${item.gambar_bukti}" class="img-fluid rounded border shadow-sm" style="max-height: 200px;"></div>` 
+                                            : ''}
+                                    </div>
                                 </div>
                             </div>
                         </div>
