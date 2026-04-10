@@ -91,6 +91,17 @@ if (!user) {
             // Muat data untuk chart dan tabel
             loadDosenData(); 
         }
+
+        const linkTransparansi = document.querySelector('[data-bs-target="#collapseTransparansi"]');
+        const sidebarElement = document.querySelector('.sidebar'); 
+
+        if (linkTransparansi && sidebarElement) {
+            linkTransparansi.addEventListener('click', function() {
+                if (sidebarElement.classList.contains('collapsed')) {
+                    sidebarElement.classList.remove('collapsed');
+                }
+            });
+        }
     });
 }
 
@@ -606,10 +617,18 @@ function renderDosenTables(data) {
     const tbPemutihan = document.getElementById("tabelDosenPemutihan");
     if (!tbPelanggaran || !tbPemutihan) return; 
 
+    // Cek Role Admin
+    const userSession = JSON.parse(sessionStorage.getItem("user"));
+    const isAdmin = userSession && typeof ADMIN !== 'undefined' && ADMIN.includes(userSession.email);
+
+    // Atur visibilitas header "Aksi"
+    document.querySelectorAll('.th-admin').forEach(th => {
+        if (isAdmin) th.classList.remove('d-none');
+        else th.classList.add('d-none');
+    });
+
     let htmlPel = "", htmlPem = "";
     let countPel = 0, countPem = 0;
-    
-    // Variabel penghitung dinamis agar selalu mulai dari 1
     let indexPel = 1; 
     let indexPem = 1;
 
@@ -620,6 +639,21 @@ function renderDosenTables(data) {
 
         if (item.status === "Pelanggaran") {
             countPel++;
+            
+            // Generate Tombol Aksi Khusus Admin
+            const aksiHtml = isAdmin ? `
+                <td class="text-center">
+                    <div class="btn-group shadow-sm">
+                        <button class="btn btn-sm btn-warning text-dark py-0 px-2" onclick="putihkanBaris('${item.no}', '${item.nama}')" title="Putihkan Pelanggaran">
+                            <i class="bi bi-shield-check fw-bold"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger py-0 px-2" onclick="hapusBaris('${item.no}', '${item.nama}')" title="Hapus Invalid">
+                            <i class="bi bi-trash3-fill"></i>
+                        </button>
+                    </div>
+                </td>
+            ` : '';
+
             htmlPel += `
                 <tr>
                     <td class="ps-3 fw-bold text-muted">${indexPel++}</td>
@@ -629,7 +663,7 @@ function renderDosenTables(data) {
                     <td class="fw-bold">${item.nama}</td>
                     <td class="text-muted">${item.keterangan}</td>
                     <td>${buktiHtml}</td>
-                </tr>`;
+                    ${aksiHtml} </tr>`;
         } else if (item.status === "Pemutihan") {
             countPem++;
             htmlPem += `
@@ -645,13 +679,86 @@ function renderDosenTables(data) {
         }
     });
 
-    tbPelanggaran.innerHTML = htmlPel || '<tr><td colspan="7" class="text-center py-3">Tidak ada data.</td></tr>';
+    // Sesuaikan colspan berdasarkan status Admin
+    const colspanPelanggaran = isAdmin ? 8 : 7;
+    tbPelanggaran.innerHTML = htmlPel || `<tr><td colspan="${colspanPelanggaran}" class="text-center py-3">Tidak ada data.</td></tr>`;
     tbPemutihan.innerHTML = htmlPem || '<tr><td colspan="7" class="text-center py-3">Tidak ada data.</td></tr>';
 
     const infoPel = document.getElementById("infoPelanggaranAktif");
     const infoPem = document.getElementById("infoPemutihan");
     if(infoPel) infoPel.textContent = `Menampilkan: ${countPel} data pelanggaran`;
     if(infoPem) infoPem.textContent = `Menampilkan: ${countPem} data pemutihan`;
+}
+
+function putihkanBaris(no, nama) {
+    Swal.fire({
+        title: 'Putihkan Pelanggaran?',
+        html: `Anda akan mencabut sanksi pelanggaran atas nama:<br><b class="fs-5">${nama}</b> (ID: #${no})`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-check-circle text-dark"></i> Ya, Putihkan',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const today = new Date();
+            const tglHariIni = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+
+            Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            fetch(GAS_PELANGGARAN_SENDIRI, {
+                method: 'POST',
+                body: JSON.stringify({ action: "update_pemutihan", no: no, tgl_pemutihan: tglHariIni })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "ok") {
+                    Swal.fire("Berhasil", "Data pelanggaran telah diputihkan.", "success").then(() => loadDosenData());
+                } else {
+                    Swal.fire("Gagal", data.message, "error");
+                }
+            });
+        }
+    });
+}
+
+function hapusBaris(no, nama) {
+    Swal.fire({
+        title: 'Hapus Laporan Invalid?',
+        html: `Hapus permanen laporan atas nama <br><b>${nama}</b> (ID: #${no})?<br><br>
+               <div class="alert alert-danger p-2 small text-start">
+                   <i class="bi bi-exclamation-triangle-fill me-1"></i> Tindakan ini akan menghapus baris dari Spreadsheet dan tidak dapat dikembalikan!
+               </div>`,
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-trash3-fill"></i> Ya, Hapus',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({ title: 'Menghapus Data...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            fetch(GAS_PELANGGARAN_SENDIRI, { 
+                method: 'POST',
+                body: JSON.stringify({ action: "delete_pelanggaran", no: no })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "ok") {
+                    Swal.fire("Terhapus!", "Laporan invalid telah dihapus permanen.", "success").then(() => loadDosenData());
+                } else {
+                    Swal.fire("Gagal", data.message, "error");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire('Error', 'Gagal terhubung ke server.', 'error');
+            });
+        }
+    });
 }
 
 // --- LOGIKA EDIT PEMUTIHAN (SWEETALERT) ---

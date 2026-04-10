@@ -63,8 +63,11 @@
             </li>
             <li class="nav-item d-none" id="menuTransparansiMahasiswa">
                 <a class="nav-link collapsed text-white d-flex justify-content-between align-items-center" href="#" data-bs-toggle="collapse" data-bs-target="#collapseTransparansi" aria-expanded="false">
-                    <span><i class="bi bi-search me-2"></i>Transparansi Nilai</span>
-                    <i class="bi bi-chevron-down small"></i>
+                    <span>
+                        <i class="bi bi-search me-2"></i>
+                        <span class="label">Transparansi Nilai</span> 
+                    </span>
+                    <i class="bi bi-chevron-down small label"></i> 
                 </a>
                 <div class="collapse" id="collapseTransparansi">
                     <ul class="nav flex-column ms-3 mt-1">
@@ -226,16 +229,10 @@
                             <button class="btn btn-sm btn-outline-light me-2" onclick="loadDosenData()" id="btnRefreshDosen">
                                 <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                             </button>
-                            <button class="btn btn-sm btn-light fw-bold text-danger me-2 shadow-sm d-none" id="btnTambahBatch" onclick="bukaModalBatch()">
+                            <button class="btn btn-sm btn-light fw-bold text-danger shadow-sm d-none" id="btnTambahBatch" onclick="bukaModalBatch()">
                                 <i class="bi bi-plus-circle-fill me-1"></i>Tambah
                             </button>
-                            <button class="btn btn-sm btn-warning fw-bold text-dark me-2 d-none" id="btnPutihkan" onclick="promptPemutihan()">
-                                <i class="bi bi-pencil-square me-1"></i>Edit (Putihkan)
-                            </button>
-                            <button class="btn btn-sm btn-dark fw-bold text-white shadow-sm d-none" id="btnHapusInvalid" onclick="promptHapus()">
-                                <i class="bi bi-trash3-fill me-1"></i>Hapus Invalid
-                            </button>
-                        </div>
+                            </div>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
@@ -249,15 +246,17 @@
                                         <th style="cursor:pointer;" onclick="sortTable('nama')">Nama <i class="bi bi-arrow-down-up small"></i></th>
                                         <th>Keterangan</th>
                                         <th>Bukti</th>
+                                        <th class="th-admin d-none text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabelDosenPelanggaran">
-                                    <tr><td colspan="7" class="text-center py-4">Memuat data...</td></tr>
+                                    <tr><td colspan="8" class="text-center py-4">Memuat data...</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
+                
                 <div class="text-end text-muted small mb-4 fw-bold" id="infoPelanggaranAktif">Menampilkan: 0 data pelanggaran</div>
 
                 <div class="card shadow-sm border-0 rounded-4 mb-2">
