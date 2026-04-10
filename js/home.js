@@ -712,3 +712,223 @@ function setDefaultFilterValues() {
     if (ftSelesai) ftSelesai.value = lastDay;
     
 }
+
+// ==========================================
+// LOGIKA BATCH INSERT PELANGGARAN (MODAL)
+// ==========================================
+let batchRowCount = 0;
+let listMahasiswaUtuh = []; // Cache list mahasiswa agar datalist cepat
+
+// Fungsi untuk membuka Modal & Load List Mahasiswa (jika belum diload)
+function bukaModalBatch() {
+    // Kosongkan form sebelumnya
+    document.getElementById("batchRowsContainer").innerHTML = "";
+    batchRowCount = 0;
+    
+    // Tambah 1 baris default
+    tambahBarisBatch();
+
+    // Tampilkan Modal (Menggunakan Bootstrap Modal API)
+    const modal = new bootstrap.Modal(document.getElementById('modalBatchPelanggaran'));
+    modal.show();
+
+    // Fetch list mahasiswa (sekali saja) jika array masih kosong
+    if (listMahasiswaUtuh.length === 0) {
+        fetch(GAS_LOGIN, {
+            method: 'POST',
+            body: JSON.stringify({ action: "get_mahasiswa" })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "ok") {
+                listMahasiswaUtuh = data.user;
+                const datalist = document.getElementById("listMahasiswaBatch");
+                datalist.innerHTML = "";
+                listMahasiswaUtuh.forEach(mhs => {
+                    const option = document.createElement("option");
+                    // Format: NIM - Nama (Memudahkan search text)
+                    option.value = `${mhs.nim} - ${mhs.nama}`;
+                    datalist.appendChild(option);
+                });
+            }
+        }).catch(err => console.error("Gagal load datalist mahasiswa:", err));
+    }
+}
+
+// Fungsi menambah baris HTML ke dalam Modal
+function tambahBarisBatch() {
+    batchRowCount++;
+    const container = document.getElementById("batchRowsContainer");
+    
+    // Tanggal default hari ini (Format HTML Date: YYYY-MM-DD)
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+    const rowHtml = `
+        <div class="card shadow-sm border-0 mb-3 batch-row" id="batchRow-${batchRowCount}">
+            <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between">
+                <h6 class="fw-bold text-secondary mb-0">Baris #${batchRowCount}</h6>
+                ${batchRowCount > 1 ? `<button type="button" class="btn btn-sm btn-outline-danger py-0" onclick="hapusBarisBatch(${batchRowCount})"><i class="bi bi-x-lg"></i> Hapus</button>` : ''}
+            </div>
+            <div class="card-body row g-2">
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted mb-1">Tanggal</label>
+                    <input type="date" class="form-control form-control-sm b-tanggal" value="${todayStr}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Pilih Mahasiswa (NIM/Nama)</label>
+                    <input class="form-control form-control-sm b-mahasiswa" list="listMahasiswaBatch" placeholder="Ketik NIM / Nama..." required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Jenis Pelanggaran</label>
+                    <select class="form-select form-select-sm b-jenis" required onchange="cekTipeUjian(this)">
+                        <option value="" disabled selected>Pilih jenis...</option>
+                        <option value="Terlambat mengikuti ujian">Terlambat mengikuti ujian</option>
+                        <option value="Titip absen">Titip absen</option>
+                        <option value="Pemalsuan (dokumen/ TTD)">Pemalsuan (dokumen/ TTD)</option>
+                        <option value="Melakukan kekerasan (verbal/non-verbal)">Melakukan kekerasan</option>
+                        <option value="Mencontek">Mencontek</option>
+                        <option value="Lain lain">Lain-lain</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted mb-1">Keterangan Singkat</label>
+                    <input type="text" class="form-control form-control-sm b-keterangan" placeholder="Keterangan..." required>
+                </div>
+                <div class="col-md-3 d-none b-ujian-container mt-2">
+                    <label class="form-label small fw-bold text-danger mb-1">Ujian Apa?</label>
+                    <select class="form-select form-select-sm border-danger b-ujian">
+                        <option value="" disabled selected>Pilih Ujian...</option>
+                        <option value="UTS Genap 25/26">UTS Genap 25/26</option>
+                        <option value="UAS Genap 25/26">UAS Genap 25/26</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', rowHtml);
+}
+
+function hapusBarisBatch(id) {
+    const row = document.getElementById(`batchRow-${id}`);
+    if (row) row.remove();
+}
+
+// Munculkan opsi Ujian HANYA di baris yang memilih "Terlambat Ujian"
+function cekTipeUjian(selectElement) {
+    const rowBody = selectElement.closest('.card-body');
+    const ujianContainer = rowBody.querySelector('.b-ujian-container');
+    const ujianSelect = rowBody.querySelector('.b-ujian');
+
+    if (selectElement.value === "Terlambat mengikuti ujian") {
+        ujianContainer.classList.remove('d-none');
+        ujianSelect.required = true;
+    } else {
+        ujianContainer.classList.add('d-none');
+        ujianSelect.required = false;
+        ujianSelect.value = "";
+    }
+}
+
+// Eksekusi Submit Batch
+function submitBatchPelanggaran() {
+    const rows = document.querySelectorAll('.batch-row');
+    if (rows.length === 0) return Swal.fire("Info", "Minimal harus ada 1 baris data.", "info");
+
+    let isFormValid = true;
+    const payloads = [];
+
+    rows.forEach(row => {
+        const inputTgl = row.querySelector('.b-tanggal').value;
+        const inputMhs = row.querySelector('.b-mahasiswa').value;
+        const inputJenis = row.querySelector('.b-jenis').value;
+        let inputKet = row.querySelector('.b-keterangan').value;
+        const inputUjian = row.querySelector('.b-ujian').value;
+
+        // Validasi HTML
+        if (!inputTgl || !inputMhs || !inputJenis || !inputKet) {
+            isFormValid = false;
+        }
+        if (inputJenis === "Terlambat mengikuti ujian" && !inputUjian) {
+            isFormValid = false;
+        }
+
+        // 1. Format Tanggal (YYYY-MM-DD ke DD/MM/YYYY)
+        const [y, m, d] = inputTgl.split("-");
+        const formattedDate = `${d}/${m}/${y}`;
+
+        // 2. Pemisahan NIM dan Nama
+        let finalNim = "-";
+        let finalNama = inputMhs;
+        let finalNiu = "-";
+
+        if (inputMhs.includes(" - ")) {
+            const parts = inputMhs.split(" - ");
+            finalNim = parts[0].trim(); // cth: 18/431127/TK/47720
+            finalNama = parts.slice(1).join(" - ").trim();
+            
+            // 3. Potong NIU dari NIM (Ambil bagian index ke-1 setelah di-split garis miring)
+            const nimParts = finalNim.split('/');
+            if (nimParts.length > 1) {
+                finalNiu = nimParts[1].trim(); // cth: 431127
+            }
+        }
+
+        // 4. Gabung Keterangan Ujian
+        if (inputJenis === "Terlambat mengikuti ujian") {
+            inputKet = `${inputUjian} - ${inputKet}`;
+        }
+
+        payloads.push({
+            tanggal: formattedDate,
+            jenis: inputJenis,
+            nim: finalNim,
+            niu: finalNiu,
+            nama: finalNama,
+            keterangan: inputKet
+        });
+    });
+
+    if (!isFormValid) {
+        return Swal.fire("Perhatian", "Mohon lengkapi semua kolom yang wajib diisi pada setiap baris.", "warning");
+    }
+
+    // Konfirmasi Simpan
+    Swal.fire({
+        title: 'Simpan Batch?',
+        text: `Anda akan menyimpan ${payloads.length} data pelanggaran ke sistem.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Simpan',
+        confirmButtonColor: '#0d6efd'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            // Post ke Spreadsheet Pelanggaran (Action baru: batch_add_pelanggaran)
+            fetch(GAS_PELANGGARAN, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: "batch_add_pelanggaran",
+                    payloads: payloads
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "ok") {
+                    Swal.fire("Berhasil", `${payloads.length} data telah ditambahkan.`, "success").then(() => {
+                        // Tutup Modal
+                        bootstrap.Modal.getInstance(document.getElementById('modalBatchPelanggaran')).hide();
+                        loadDosenData(); // Refresh Tabel Dosen
+                    });
+                } else {
+                    Swal.fire("Gagal", data.message, "error");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire("Error", "Gagal menghubungi server.", "error");
+            });
+        }
+    });
+}
