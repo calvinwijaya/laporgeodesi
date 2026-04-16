@@ -426,6 +426,8 @@ function renderDosenCharts(data) {
 
     const labels = Object.keys(counts);
     const values = Object.values(counts);
+    const totalPelanggaran = values.reduce((sum, val) => sum + val, 0);
+    Chart.register(ChartDataLabels);
 
     // --- Render Pie Chart ---
     if (pieChartInstance) pieChartInstance.destroy(); 
@@ -438,7 +440,27 @@ function renderDosenCharts(data) {
                 backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#198754', '#0dcaf0', '#6f42c1', '#d63384']
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12 } } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { 
+                legend: { position: 'right', labels: { boxWidth: 12 } },
+                // Konfigurasi Label Pie Chart (UBAH KE PERSENTASE)
+                datalabels: {
+                    color: '#ffffff',
+                    font: { weight: 'bold', size: 14 },
+                    formatter: (value) => { 
+                        if (value === 0) return '';
+                        // Hitung persentase (1 angka di belakang koma)
+                        let persentase = ((value / totalPelanggaran) * 100).toFixed(1);
+                        // Bersihkan jika hasilnya bulat (misal 25.0% jadi 25%)
+                        if (persentase.endsWith('.0')) persentase = persentase.slice(0, -2);
+                        
+                        return persentase + '%'; 
+                    }
+                }
+            } 
+        }
     });
 
     // --- Render Bar Chart ---
@@ -449,7 +471,22 @@ function renderDosenCharts(data) {
             labels: labels,
             datasets: [{ label: 'Jumlah', data: values, backgroundColor: '#0d6efd', borderRadius: 4 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, 
+            plugins: { 
+                legend: { display: false },
+                // Konfigurasi Label Bar Chart
+                datalabels: {
+                    color: '#ffffff',
+                    anchor: 'center', // Taruh jangkar di tengah bar
+                    align: 'center',  // Ratakan teks di tengah
+                    font: { weight: 'bold', size: 14 },
+                    formatter: (value) => { return value > 0 ? value : ''; }
+                }
+            } 
+        }
     });
 
     // --- Render Line Chart (Sort Tanggal Secara Kronologis) ---
@@ -477,7 +514,15 @@ function renderDosenCharts(data) {
                 pointBackgroundColor: '#dc3545'
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+            plugins: {
+                // Matikan label di Line Chart agar tidak berantakan
+                datalabels: { display: false } 
+            }
+        }
     });
 }
 
