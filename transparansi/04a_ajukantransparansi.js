@@ -20,7 +20,6 @@
                 text: 'Mohon maaf, masa pengajuan transparansi nilai saat ini sedang ditutup.',
                 confirmButtonColor: '#0d6efd'
             }).then(() => {
-                // Hapus form dari layar
                 document.getElementById("mainContent").innerHTML = `
                     <div class='text-center mt-5 py-5'>
                         <i class='bi bi-calendar-x-fill text-danger' style='font-size: 4rem;'></i>
@@ -28,11 +27,9 @@
                         <p class="text-muted">Anda hanya bisa melihat riwayat pengajuan Anda di menu Pantau dan Hasil.</p>
                     </div>`;
             });
-            return; // Hentikan script
+            return;
         }
 
-        // JIKA "ON", LANJUTKAN RENDER HALAMAN PENGAJUAN SEPERTI BIASA
-        
         // 2. Generate Math Captcha
         function generateCaptcha() {
             const num1 = Math.floor(Math.random() * 10) + 1;
@@ -45,7 +42,7 @@
         }
         generateCaptcha();
 
-        // 3. Fetch Datalist Matkul & Dosen secara pararel
+        // 3. Fetch Datalist Matkul & Dosen secara pararel dengan Safety Check SPA
         if (typeof GAS_TRANSPARANSI !== 'undefined') {
             fetch(GAS_TRANSPARANSI, { method: 'POST', body: JSON.stringify({ action: "get_matkul" }) })
             .then(res => res.json()).then(data => {
@@ -64,12 +61,133 @@
             });
         }
 
-        // 4. Tangani Proses Submit (Sisanya sama persis seperti kode Anda sebelumnya...)
+        // 4. Proses Ekstraksi String Nama & Email Dosen Mandiri
+        function ekstrakDosen(idInput) {
+            const inputVal = document.getElementById(idInput).value.trim();
+            if (!inputVal) return { nama: "-", email: "-" };
+            
+            if (inputVal.includes("|")) {
+                const parts = inputVal.split("|");
+                return { nama: parts[0].trim(), email: parts[1].trim() };
+            }
+            return { nama: inputVal, email: "-" };
+        }
+
+        // // 5. Tangani Proses Submit
+        // const form = document.getElementById("formTransparansi");
+        // if (form) {
+        //     form.onsubmit = function(e) {
+        //         e.preventDefault(); 
+                
+        //         const userCaptcha = parseInt(document.getElementById("trCaptcha").value);
+        //         if (userCaptcha !== captchaAnswer) {
+        //             Swal.fire("Captcha Salah", "Jawaban matematika Anda kurang tepat. Silakan coba lagi.", "warning");
+        //             generateCaptcha();
+        //             return;
+        //         }
+
+        //         // --- LOGIKA BARU: FILTER MATA KULIAH PILOT PROJECT ---
+        //         const selectedMatkul = document.getElementById("trMatkul").value;
+        //         const allowedMK = [
+        //             "TKD213607", // Praktikum Analisis Citra Penginderaan Jauh
+        //             "TKD213609", // Praktikum Analisis Geospasial
+        //             "TKD212407", // Praktikum Grafika Komputer dan Visualisasi
+        //             "TKD211207", // Praktikum Sistem Basisdata
+        //             "TKD211211", // Praktikum Survei Terestris II
+        //             "TKD213510"  // Praktikum Survei Kadastral
+        //         ];
+
+        //         // Cek apakah MK yang diketik/dipilih mengandung salah satu kode di atas
+        //         const isAllowed = allowedMK.some(kode => selectedMatkul.includes(kode));
+
+        //         if (!isAllowed) {
+        //             Swal.fire({
+        //                 title: 'Mata Kuliah Belum Terdaftar',
+        //                 html: 'Maaf, saat ini Pengajuan Transparansi hanya bisa dilakukan untuk MK-MK yang diajar oleh Mas Calvin sebagai <i>testing</i> dan <i>Pilot Project</i>. <br><br>Untuk MK lain akan melalui form dari Prodi. Mohon maaf atas ketidaknyamanannya, saya berusaha mengajukan ini ke Prodi.',
+        //                 icon: 'info',
+        //                 confirmButtonText: 'Mengerti',
+        //                 confirmButtonColor: '#0d6efd'
+        //             });
+        //             return; // Hentikan proses submit
+        //         }
+        //         // -----------------------------------------------------
+
+        //         // Ekstrak Tim Dosen Pengampu 1, 2, dan 3
+        //         const dosen1 = ekstrakDosen("trDosen1");
+        //         const dosen2 = ekstrakDosen("trDosen2");
+        //         const dosen3 = ekstrakDosen("trDosen3");
+
+        //         const today = new Date();
+        //         const tglDiajukan = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+
+        //         // Integrasi data ke Payload
+        //         const payload = {
+        //             action: "submit_transparansi",
+        //             tanggal_pengajuan: tglDiajukan,
+        //             nim: userSession.nim || "-",
+        //             niu: userSession.niu || "-",
+        //             nama: userSession.nama,
+        //             email: userSession.email,
+        //             matkul: selectedMatkul,
+        //             kelas: document.getElementById("trKelas").value,
+        //             nilai_saat_ini: document.getElementById("trNilai").value,
+        //             dosen_nama1: dosen1.nama,
+        //             dosen_email1: dosen1.email,
+        //             dosen_nama2: dosen2.nama,
+        //             dosen_email2: dosen2.email,
+        //             dosen_nama3: dosen3.nama,
+        //             dosen_email3: dosen3.email,
+        //             hal_konfirmasi: document.getElementById("trHal").value,
+        //             alasan_mendasari: document.getElementById("trAlasan").value
+        //         };
+
+        //         Swal.fire({
+        //             title: 'Konfirmasi Pengajuan',
+        //             text: "Apakah Anda yakin data pengajuan transparansi ini sudah valid?",
+        //             icon: 'question',
+        //             showCancelButton: true,
+        //             confirmButtonColor: '#0d6efd',
+        //             cancelButtonColor: '#6c757d',
+        //             confirmButtonText: 'Ya, Ajukan!',
+        //             cancelButtonText: 'Batal',
+        //             reverseButtons: true
+        //         }).then((result) => {
+        //             if (result.isConfirmed) {
+        //                 Swal.fire({ title: 'Mengirim Pengajuan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        //                 fetch(GAS_TRANSPARANSI, {
+        //                     method: 'POST',
+        //                     body: JSON.stringify(payload)
+        //                 })
+        //                 .then(res => res.json())
+        //                 .then(data => {
+        //                     if (data.status === "ok") {
+        //                         Swal.fire("Berhasil", "Pengajuan transparansi Anda telah masuk ke sistem. Anda dapat memantaunya di menu Pantau Pengajuan.", "success")
+        //                         .then(() => {
+        //                             form.reset();
+        //                             const trNama = document.getElementById("trNama");
+        //                             const trNim = document.getElementById("trNim");
+        //                             if (trNama) trNama.value = userSession.nama;
+        //                             if (trNim) trNim.value = userSession.nim || "-";
+        //                             generateCaptcha();
+        //                         });
+        //                     } else {
+        //                         Swal.fire('Gagal', data.message, 'error');
+        //                     }
+        //                 })
+        //                 .catch(err => {
+        //                     console.error(err);
+        //                     Swal.fire('Error', 'Gagal terhubung ke server.', 'error');
+        //                 });
+        //             }
+        //         });
+        //     };
+        // }
+        // 5. Tangani Proses Submit
         const form = document.getElementById("formTransparansi");
         if (form) {
             form.onsubmit = function(e) {
                 e.preventDefault(); 
-                // ... (Masukkan kode validasi captcha, payload, dan fetch submit di sini) ...
                 
                 const userCaptcha = parseInt(document.getElementById("trCaptcha").value);
                 if (userCaptcha !== captchaAnswer) {
@@ -78,18 +196,17 @@
                     return;
                 }
 
-                const inputDosen = document.getElementById("trDosen").value;
-                let dosenNama = inputDosen;
-                let dosenEmail = "-";
-                if (inputDosen.includes("|")) {
-                    const parts = inputDosen.split("|");
-                    dosenNama = parts[0].trim();
-                    dosenEmail = parts[1].trim();
-                }
+                // (Filter MK Pilot Project telah dihapus di sini, sehingga semua MK lolos)
+
+                // Ekstrak Tim Dosen Pengampu 1, 2, dan 3
+                const dosen1 = ekstrakDosen("trDosen1");
+                const dosen2 = ekstrakDosen("trDosen2");
+                const dosen3 = ekstrakDosen("trDosen3");
 
                 const today = new Date();
                 const tglDiajukan = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
 
+                // Integrasi data ke Payload
                 const payload = {
                     action: "submit_transparansi",
                     tanggal_pengajuan: tglDiajukan,
@@ -99,15 +216,20 @@
                     email: userSession.email,
                     matkul: document.getElementById("trMatkul").value,
                     kelas: document.getElementById("trKelas").value,
-                    dosen_nama: dosenNama,
-                    dosen_email: dosenEmail,
+                    nilai_saat_ini: document.getElementById("trNilai").value,
+                    dosen_nama1: dosen1.nama,
+                    dosen_email1: dosen1.email,
+                    dosen_nama2: dosen2.nama,
+                    dosen_email2: dosen2.email,
+                    dosen_nama3: dosen3.nama,
+                    dosen_email3: dosen3.email,
                     hal_konfirmasi: document.getElementById("trHal").value,
                     alasan_mendasari: document.getElementById("trAlasan").value
                 };
 
                 Swal.fire({
                     title: 'Konfirmasi Pengajuan',
-                    text: "Apakah Anda yakin data yang dimasukkan sudah benar?",
+                    text: "Apakah Anda yakin data pengajuan transparansi ini sudah valid?",
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#0d6efd',
@@ -147,5 +269,5 @@
                 });
             };
         }
-    }); // Akhir dari Fetch Status
+    });
 })();

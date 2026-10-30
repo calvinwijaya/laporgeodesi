@@ -1019,8 +1019,8 @@ function tambahBarisBatch() {
                     <label class="form-label small fw-bold text-danger mb-1">Ujian Apa?</label>
                     <select class="form-select form-select-sm border-danger b-ujian">
                         <option value="" disabled selected>Pilih Ujian...</option>
-                        <option value="UTS Genap 25/26">UTS Genap 25/26</option>
-                        <option value="UAS Genap 25/26">UAS Genap 25/26</option>
+                        <option value="UTS Gasal 26/27">UTS Gasal 26/27</option>
+                        <option value="UAS Gasal 26/27">UAS Gasal 26/27</option>
                     </select>
                 </div>
             </div>

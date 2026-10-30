@@ -34,6 +34,31 @@ window.renderHasilCards = function(data) {
 
     let html = "";
     data.forEach(item => {
+        let lampiranHtml = "";
+        if (item.gambar_bukti && item.gambar_bukti !== "-") {
+            if (item.gambar_bukti.startsWith("data:image")) {
+                // Jika berupa upload gambar
+                lampiranHtml = `<div class="mt-3 border-top border-success pt-2">
+                                    <div class="small fw-bold mb-1 text-success">Lampiran Bukti Dosen:</div>
+                                    <img src="${item.gambar_bukti}" class="img-fluid rounded border shadow-sm" style="max-height: 150px;">
+                                </div>`;
+            } else if (item.gambar_bukti.startsWith("http") || item.gambar_bukti.toLowerCase().includes("drive.google")) {
+                // Jika berupa Link GDrive / Tautan Web
+                let url = item.gambar_bukti.startsWith("http") ? item.gambar_bukti : "https://" + item.gambar_bukti;
+                lampiranHtml = `<div class="mt-3 border-top border-success pt-2">
+                                    <div class="small fw-bold mb-1 text-success">Lampiran Bukti Dosen:</div>
+                                    <a href="${url}" target="_blank" class="btn btn-sm btn-success fw-bold shadow-sm">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i> Buka Tautan Lampiran
+                                    </a>
+                                </div>`;
+            } else {
+                // Jika teks biasa
+                lampiranHtml = `<div class="mt-3 border-top border-success pt-2">
+                                    <div class="small fw-bold mb-1 text-success">Catatan Tambahan:</div>
+                                    <span class="small text-muted">${item.gambar_bukti}</span>
+                                </div>`;
+            }
+        }
         html += `
             <div class="col-md-12">
                 <div class="card shadow-sm border-0 rounded-4 h-100 border-start border-4 border-success">
@@ -73,14 +98,8 @@ window.renderHasilCards = function(data) {
                                         <div class="small fw-bold">Alasan Keputusan Dosen:</div>
                                         <p class="small mb-0 text-dark">${item.alasan_keputusan}</p>
                                     </div>
-                                    <div class="col-md-8">
-                                        <div class="small fw-bold">Alasan Keputusan Dosen:</div>
-                                        <p class="small mb-0 text-dark">${item.alasan_keputusan}</p>
-                                        
-                                        ${(item.gambar_bukti && item.gambar_bukti.startsWith("data:image")) 
-                                            ? `<div class="mt-2"><div class="small fw-bold mb-1">Lampiran Dosen:</div>
-                                               <img src="${item.gambar_bukti}" class="img-fluid rounded border shadow-sm" style="max-height: 200px;"></div>` 
-                                            : ''}
+                                    <div class="col-md-8">                                        
+                                        ${lampiranHtml}
                                     </div>
                                 </div>
                             </div>
